@@ -1,9 +1,21 @@
 import { MetaProvider, Title } from "@solidjs/meta";
-import { Router } from "@solidjs/router";
+import { A, createAsync, query, Router, useLocation } from "@solidjs/router";
 import { FileRoutes } from "@solidjs/start/router";
-import { ErrorBoundary, ParentProps, Suspense } from "solid-js";
+import { createEffect, ErrorBoundary, For, ParentProps, Show, Suspense } from "solid-js";
+import { getContacts } from "~/lib/contacts";
+
+const fetchContacts = query(async (q?: string) => {
+    "use server";
+    return await getContacts(q ?? null);
+}, "contacts");
 
 function Root(props: ParentProps) {
+    const location = useLocation();
+    const q = () => location.query.q as string | undefined;
+    const contacts = createAsync(() => fetchContacts(q()));
+
+    createEffect(() => console.log(contacts()));
+
     return (
         <>
             <Title>SolidStart Contacts</Title>
@@ -18,6 +30,7 @@ function Root(props: ParentProps) {
                             name="q"
                             placeholder="Search"
                             type="search"
+                            value={q() ?? ""}
                         />
                         <div aria-hidden hidden={true} id="search-spinner" />
                     </form>
@@ -26,14 +39,37 @@ function Root(props: ParentProps) {
                     </form>
                 </div>
                 <nav>
-                    <ul>
-                        <li>
-                            <a href={`/contacts/1`}>Your Name</a>
-                        </li>
-                        <li>
-                            <a href={`/contacts/2`}>Your Friend</a>
-                        </li>
-                    </ul>
+                    <Show
+                        when={contacts()}
+                        fallback={
+                            <p>
+                                <i>No contacts</i>
+                            </p>
+                        }
+                    >
+                        {c => (
+                            <For each={c()}>
+                                {contact => (
+                                    // FIXME: Why is this causing a hydration mismatch?
+                                    <li>
+                                        {/* TODO: `pending` class */}
+                                        <A href={`contacts/${contact.id}`} activeClass="active">
+                                            <Show
+                                                when={contact.first || contact.last}
+                                                fallback={<i>No Name</i>}
+                                            >
+                                                {contact.first} {contact.last}
+                                            </Show>
+
+                                            <Show when={contact.favorite}>
+                                                <span>★</span>
+                                            </Show>
+                                        </A>
+                                    </li>
+                                )}
+                            </For>
+                        )}
+                    </Show>
                 </nav>
             </div>
             <div id="detail">
