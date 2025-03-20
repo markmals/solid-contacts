@@ -1,13 +1,14 @@
 import { openKv } from "@deno/kv";
 import { matchSorter } from "match-sorter";
 import sortBy from "sort-by";
+import { seed } from "./seed-db";
 
 export interface Contact {
     id: string;
     first: string;
     last: string;
     avatar: string;
-    mastodon: string;
+    bsky: string;
     notes: string;
     favorite?: boolean;
     createdAt: Date;
@@ -16,22 +17,22 @@ export interface Contact {
 const kv = await openKv(":memory:");
 const CONTACTS = "contacts";
 
-export async function getContacts(query?: string) {
+await seed(kv, CONTACTS);
+
+export async function getContacts(query: string | null) {
     await fakeNetwork(`getContacts:${query}`);
 
-    const contactsIterator = kv.list<Contact>({ prefix: [CONTACTS] });
-    const contacts: Contact[] = [];
+    let contacts: Contact[] = [];
 
-    for await (const entry of contactsIterator) {
+    for await (const entry of kv.list<Contact>({ prefix: [CONTACTS] })) {
         contacts.push(entry.value);
     }
 
-    let filteredContacts = contacts;
     if (query) {
-        filteredContacts = matchSorter(contacts, query, { keys: ["first", "last"] });
+        contacts = matchSorter(contacts, query, { keys: ["first", "last"] });
     }
 
-    return filteredContacts.sort(sortBy("last", "createdAt"));
+    return contacts.toSorted(sortBy("last", "createdAt"));
 }
 
 export async function createContact() {
@@ -43,7 +44,7 @@ export async function createContact() {
         first: "",
         last: "",
         avatar: "",
-        mastodon: "",
+        bsky: "",
         notes: "",
         createdAt: new Date(),
     };
@@ -53,7 +54,7 @@ export async function createContact() {
     return newContact;
 }
 
-export async function getContact(id?: number) {
+export async function getContact(id?: string) {
     if (!id) return null;
 
     await fakeNetwork(`contact:${id}`);
@@ -62,7 +63,7 @@ export async function getContact(id?: number) {
     return result.value;
 }
 
-export async function updateContact(id: number, updates: Partial<Contact>) {
+export async function updateContact(id: string, updates: Partial<Contact>) {
     await fakeNetwork();
 
     const result = await kv.get<Contact>([CONTACTS, id]);
@@ -79,7 +80,7 @@ export async function updateContact(id: number, updates: Partial<Contact>) {
     return updatedContact;
 }
 
-export async function deleteContact(id: number) {
+export async function deleteContact(id: string) {
     await kv.delete([CONTACTS, id]);
     return true;
 }
@@ -87,9 +88,10 @@ export async function deleteContact(id: number) {
 // fake a cache so we don't slow down stuff we've already seen
 const fakeCache = new Map<string, boolean>();
 
-async function fakeNetwork(key?: string) {
+export async function fakeNetwork(key?: string) {
     if (!key || !fakeCache.get(key)) {
         if (key) fakeCache.set(key, true);
-        return await new Promise(res => setTimeout(res, Math.random() * 1000));
+        // Fake network slowdown between 2-5 seconds
+        return await new Promise(res => setTimeout(res, 2000 + Math.random() * 3_000));
     }
 }
