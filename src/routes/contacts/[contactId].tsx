@@ -1,7 +1,7 @@
 import { createAsync, query, RouteDefinition } from "@solidjs/router";
 import { Show } from "solid-js";
 
-export const getContact = query(async () => {
+const getContact = query(async () => {
     "use server";
     return {
         first: "Your",
