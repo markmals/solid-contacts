@@ -2,9 +2,9 @@ import { defineConfig } from "@solidjs/start/config";
 
 export default defineConfig({
     ssr: true,
-    // vite: {
-    //     ssr: {
-    //         external: ["@deno/kv"],
-    //     },
-    // },
+    vite: {
+        ssr: {
+            external: ["@deno/kv"],
+        },
+    },
 });
