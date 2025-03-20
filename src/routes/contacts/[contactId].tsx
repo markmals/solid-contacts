@@ -1,24 +1,26 @@
-import { createAsync, query, RouteDefinition } from "@solidjs/router";
+import { createAsync, query, RouteDefinition, useParams } from "@solidjs/router";
 import { Show } from "solid-js";
+import { getContact } from "~/lib/contacts";
 
-const getContact = query(async () => {
+const fetchContact = query(async (contactId: string) => {
     "use server";
-    return {
-        first: "Your",
-        last: "Name",
-        avatar: "https://placecats.com/200/200",
-        twitter: "your_handle",
-        notes: "Some notes",
-        favorite: true,
-    };
-}, "contacts");
+
+    const contact = await getContact(contactId);
+
+    if (!contact) {
+        throw new Response(null, { status: 404, statusText: "Not Found" });
+    }
+
+    return contact;
+}, "contact");
 
 export const route = {
-    preload: () => getContact(),
+    preload: ({ params }) => fetchContact(params.contactId),
 } satisfies RouteDefinition;
 
-export default function Contact() {
-    const contact = createAsync(() => getContact());
+export default function Component() {
+    const params = useParams();
+    const contact = createAsync(() => fetchContact(params.contactId));
 
     return (
         <div id="contact">
@@ -26,7 +28,6 @@ export default function Contact() {
                 <img
                     alt={`${contact()?.first} ${contact()?.last} avatar`}
                     src={contact()?.avatar}
-                    //   key={contact.avatar}
                 />
             </div>
 
@@ -38,10 +39,10 @@ export default function Contact() {
                     <Favorite contact={contact()} />
                 </h1>
 
-                <Show when={contact()?.twitter}>
+                <Show when={contact()?.bsky}>
                     {handle => (
                         <p>
-                            <a href={`https://twitter.com/${handle()}`}>{handle()}</a>
+                            <a href={`https://bsky.app/profile/${handle()}`}>@{handle()}</a>
                         </p>
                     )}
                 </Show>
