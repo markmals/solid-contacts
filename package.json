@@ -1,0 +1,23 @@
+{
+    "private": true,
+    "type": "module",
+    "scripts": {
+        "dev": "vinxi dev",
+        "build": "vinxi build",
+        "start": "vinxi start"
+    },
+    "dependencies": {
+        "@deno/kv": "^0.10.0",
+        "@solidjs/meta": "^0.29.4",
+        "@solidjs/router": "^0.15.0",
+        "@solidjs/start": "^1.1.0",
+        "@types/sort-by": "^1.2.3",
+        "match-sorter": "^8.0.0",
+        "solid-js": "^1.9.5",
+        "sort-by": "^1.2.0",
+        "vinxi": "^0.5.3"
+    },
+    "engines": {
+        "node": ">=22"
+    }
+}
